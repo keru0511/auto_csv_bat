@@ -15,52 +15,52 @@ goto :eof
 
 rem ********************************************************************************
 :USAGE
-echo USAGE:%~n0 �}�X�^�[ID �K�v��󔒋�؂�
+echo USAGE:%~n0 マスターID 必要列空白区切り
 echo.
-echo       ���̃t�@�C����z�u�����f�B���N�g���ɂ���.
-echo       xls�t�@�C�����J���ACSV(�J���}��؂�)�`���ŕۑ�(SaveAs)���܂��B
+echo       このファイルを配置したディレクトリにある.
+echo       xlsファイルを開き、CSV(カンマ区切り)形式で保存(SaveAs)します。
 echo.
-echo  ��j./xls2csv.bat a b c d
-echo  A��̋󔒍s���Ȃ���B,C,D����o�͂��܂��B
+echo  例）./xls2csv.bat a b c d
+echo  A列の空白行を省いたB,C,D列を出力します。
 echo.
-echo  ��ڂ̒l�͗�̒l���󔒂̍s�����O����܂�
+echo  一つ目の値は列の値が空白の行が除外されます
 echo.
-echo  ��ڈȍ~�̒l�͒��o��������͂��܂��i���͏��Ƀ\�[�g����܂��j
+echo  二つ目以降の値は抽出する列を入力します（入力順にソートされます）
 echo.
 goto :eof
 
 rem ********************************************************************************
 rem */
 @end
-//---------------------------------------------------------- �Z�b�g�A�b�v
+//---------------------------------------------------------- セットアップ
 
 var Args = WScript.Arguments;
 var EXCEL = WScript.CreateObject("EXCEL.Application");
 var SHELL = WScript.CreateObject("WScript.Shell");
 var fso = WScript.CreateObject("Scripting.FileSystemObject");
 
-//���O�v��
+//ログ要因
 function echo(o){ WScript.Echo(o); }
 
-// EXCEL�̒萔
+// EXCELの定数
 var xlCSV = 6;
 
-//---------------------------------------------------------- ��������
+//---------------------------------------------------------- 引数処理
 var sheet = null;
 var infile = null;
 var outfile = null;
 
-// �p�����[�^�[�̎擾
-// �����f�[�^�̎擾���@��������Ȃ������̂łƂ肠�����R�}���h���C������擾
+// パラメーターの取得
+// いいデータの取得方法が見つからなかったのでとりあえずコマンドラインから取得
 var key = Args(0);
 var p = [];
 for (var i = 1; i < Args.Length; i++){
 	p[i] = conversion(Args(i));
 }
 
-// �t�@�C������TXT����擾
-// �擾�����t�@�C������z��Ɋi�[����
-// �t�@�C�������珇�Ԃɓǂݍ���
+// ファイル名をTXTから取得
+// 取得したファイル名を配列に格納する
+// ファイル名から順番に読み込む
 var file = fso.OpenTextFile("xls2csvconf.txt");
 var txt = [];
 var i = 0;
@@ -69,20 +69,20 @@ while (!file.AtEndOfStream) {
 	txt[i] = line;
 	i++;
 }
-// �t�@�C����
+// ファイル数
 var filenum = i;
 
-//---------------------------------------------------------- �又��
-// �����擾
+//---------------------------------------------------------- 主処理
+// 長さ取得
 function length(d){
 	var used = d.UsedRange;
-	if (used.Count <= 1) return; // �g�p���Z����1�ȉ��Ȃ珈�����Ȃ�
+	if (used.Count <= 1) return; // 使用中セルが1以下なら処理しない
 	var last = new Object();
 	last.row = used.Cells(used.Count).Row;
 	last.col = used.Cells(used.Count).Column;
 	return last;
 }
-// �p���A���l�ϊ�
+// 英字、数値変換
 function conversion(p){
 	var input = p;
 	if (!input) return;
@@ -107,38 +107,38 @@ function conversion(p){
 	return result;
 }
 
-// �J�����g�f�B���N�g���̐؂�ւ�
+// カレントディレクトリの切り替え
 if (EXCEL.DefaultFilePath != SHELL.CurrentDirectory){
 	EXCEL.DefaultFilePath = SHELL.CurrentDirectory;
 	delete EXCEL;
 	EXCEL = WScript.CreateObject("EXCEL.Application");
 }
 
-//�V�K�u�b�N
+//新規ブック
 var NB = EXCEL.Workbooks.Add();
 EXCEL.DisplayAlerts = false;
 var NS = NB.Worksheets(1);
 var swrite = 1;
 
-// �t�@�C�����J��
+// ファイルを開く
 try{
 	for(var n = 0; n < filenum; n++){
-		echo(txt[n] + "���������Ă��܂��B" + "[" + n + '/' + filenum + "]");
-		// �G�N�Z���̎擾
+		echo(txt[n] + "を処理しています。" + "[" + n + '/' + filenum + "]");
+		// エクセルの取得
 		var WB = EXCEL.Workbooks.Open(txt[n]);
 		var WS = WB.Worksheets(1);
 		var WBlength = length(WS);
-		// ��������
-		// ���o���ʒu���Ⴄ�ꍇ��j�̏����l��ς���
+		// 書き込み
+		// 見出し位置が違う場合はjの初期値を変える
 		for(var j = 4; j <= WBlength.row; j++){
-			// �󔒂݂̗̂�𔻒�
+			// 空白のみの列を判定
 			var ret = [];
 			for(var i = 1; i <= WBlength.col; i++){
 				ret[i] =  WS.Cells(j,i).value;
 				var ID = WS.Cells(j,key).value;
 			}
-			// �}�X�^�[ID��̋󔒂̂��̂����O����
-			// ��ɒl�����͂���Ă���ꍇ�̂ݏ�������
+			// マスターID列の空白のものを除外する
+			// 列に値が入力されている場合のみ書き込む
 			if(ret.join('') != "" && ID !== undefined){
 				for(var i = 1; i <= p.length; i++){
 					NS.Cells(swrite,i) = ret[p[i]];
@@ -148,14 +148,14 @@ try{
 		}
 		WB.Close(false);
 	}
-	// xls�ϊ�
+	// xls変換
 	NB.SaveAs("xls2csv.csv", xlCSV);
-	// ����xls2csvconf.txt����΂�����ύX����
+	// 他でxls2csvconf.txtあればここを変更する
 	fso.DeleteFolder("xls2csvconf.txt")
 } catch(e){
 	echo(e.number + ":" + e.description);
 } finally {
 	NB.Close(false);
 	EXCEL.quit();
-	echo('�������I�����܂��B')
+	echo('処理を終了します。')
 }
